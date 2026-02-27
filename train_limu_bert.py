@@ -16,9 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description='LIMU-BERT Training with HuggingFace Models')
     parser.add_argument('--dataset', type=str, required=True, choices=['pamap2', 'hhar'])
     parser.add_argument('--model_id', type=str, required=True,
-                        help='HuggingFace model ID (e.g., AutonLab/MOMENT-1-small)')
-    parser.add_argument('--random_init', action='store_true',
-                        help='Randomly initialize backbone weights')
+                        help='HuggingFace model ID (e.g., distilbert/distilbert-base-uncased)')
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=1e-4)
@@ -45,7 +43,7 @@ def main():
         np.savez(test_data_path, X_test=X_test, y_test=y_test)
         print(f"Test data saved to {test_data_path}")
     
-    encoder, d_model = load_model(args.model_id, random_init=args.random_init)
+    encoder, d_model = load_model(args.model_id)
     model = LIMUBert(encoder, input_dim=input_dim, d_model=d_model).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     
@@ -58,11 +56,10 @@ def main():
                               batch_size=args.batch_size, shuffle=True, drop_last=True)
     
     model_name = model_id_to_name(args.model_id)
-    init_tag = 'randinit' if args.random_init else 'pretrain'
-    save_prefix = f'limu_bert_{model_name}_{init_tag}_{args.dataset}'
+    save_prefix = f'limu_bert_{model_name}_{args.dataset}'
     
     print(f"\n{'='*60}")
-    print(f"LIMU-BERT Training: {args.model_id} ({'random init' if args.random_init else 'pretrained'})")
+    print(f"LIMU-BERT Training: {args.model_id}")
     print(f"Dataset: {args.dataset.upper()}")
     print(f"{'='*60}")
     
@@ -91,7 +88,6 @@ def main():
                 'optimizer_state_dict': optimizer.state_dict(),
                 'loss': best_loss,
                 'model_id': args.model_id,
-                'random_init': args.random_init,
                 'input_dim': input_dim,
                 'd_model': d_model,
                 'dataset': args.dataset,

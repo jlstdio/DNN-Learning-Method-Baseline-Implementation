@@ -382,6 +382,6 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,linux,python,visualstudiocode,pycharm
 
 /dataset/
-!/dataset/download_hhar_dataset.py
-!/dataset/download_pamap2_dataset.py
+!/dataset/download_hhar.py
+!/dataset/download_pamap2.py
 /checkpoints/

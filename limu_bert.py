@@ -22,27 +22,28 @@ def train_limu_bert(model, optimizer, x_raw):
     batch_size, seq_len, feat_dim = x_raw.shape
     mask = torch.zeros((batch_size, seq_len), dtype=torch.bool, device=x_raw.device)
     
-    p_m = 0.8
-    p_r = 0.15
-    p_geo = 0.2
+    # Span Masking: 연속 구간을 통째로 마스킹하여 선형 보간 지름길 방지
+    p_r = 0.15           # 마스킹 비율
+    p_geo = 0.1          # geometric 파라미터 → 기대 span ≈ 10
+    min_span = 5         # 최소 span 길이
+    max_span = 20        # 최대 span 길이
     m_max = int(seq_len * p_r)
     
     x_masked = x_raw.clone()
     
     for i in range(batch_size):
-        if torch.rand(1).item() < p_m:
-            m = 0
-            while m < m_max:
-                s = torch.randint(0, seq_len, (1,)).item()
-                if not mask[i, s]:
-                    l = np.random.geometric(p_geo)
-                    l = min(l, 10, m_max - m)
-                    e = min(s + l, seq_len)
-                    
-                    mask[i, s:e] = True
-                    m += (e - s)
-            
-            x_masked[i, mask[i]] = 0.0
+        m = 0
+        while m < m_max:
+            s = torch.randint(0, seq_len, (1,)).item()
+            if not mask[i, s]:
+                l = max(np.random.geometric(p_geo), min_span)
+                l = min(l, max_span, m_max - m)
+                e = min(s + l, seq_len)
+                
+                mask[i, s:e] = True
+                m += (e - s)
+        
+        x_masked[i, mask[i]] = 0.0
     
     pred = model(x_masked)
     

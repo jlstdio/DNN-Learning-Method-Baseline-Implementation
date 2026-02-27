@@ -3,19 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def _random_crop_resample(x, crop_ratio_range=(0.5, 1.0)):
+def _random_permutation(x, max_segments=5):
+    """시간 세그먼트를 랜덤으로 셔플 (Permutation)."""
     B, T, C = x.shape
-    
-    ratio = torch.empty(1).uniform_(crop_ratio_range[0], crop_ratio_range[1]).item()
-    crop_len = max(int(T * ratio), 2)
-    start = torch.randint(0, T - crop_len + 1, (1,)).item()
+    n_segments = torch.randint(2, max_segments + 1, (1,)).item()
+    seg_len = T // n_segments
 
-    cropped = x[:, start:start + crop_len, :]
-    
-    # (B, C, crop_len) → interpolate → (B, C, T) → (B, T, C)
-    cropped_t = cropped.permute(0, 2, 1)
-    resampled = F.interpolate(cropped_t, size=T, mode='linear', align_corners=False)
-    return resampled.permute(0, 2, 1)
+    segments = []
+    for i in range(n_segments):
+        start = i * seg_len
+        end = start + seg_len if i < n_segments - 1 else T
+        segments.append(x[:, start:end, :])
+
+    perm = torch.randperm(n_segments).tolist()
+    return torch.cat([segments[p] for p in perm], dim=1)
 
 
 def _random_scaling_jitter(x, scale_range=(0.8, 1.2), jitter_std=0.05):
@@ -27,39 +28,30 @@ def _random_scaling_jitter(x, scale_range=(0.8, 1.2), jitter_std=0.05):
     return x * scale + noise
 
 
-def _random_temporal_smoothing(x, max_kernel_sigma=2.0):
+def _random_time_warp(x, sigma=0.2):
+    """부드러운 시간 왜곡 (Time Warping)."""
     B, T, C = x.shape
+    device = x.device
 
-    sigma = torch.empty(1).uniform_(0.1, max_kernel_sigma).item()
-    kernel_size = int(6 * sigma) | 1
-    kernel_size = max(kernel_size, 3)
-    if kernel_size > T:
-        kernel_size = T if T % 2 == 1 else T - 1
+    random_speed = torch.ones(T, device=device) + torch.randn(T, device=device) * sigma
+    random_speed = F.relu(random_speed) + 0.1
+    cumulative = torch.cumsum(random_speed, dim=0)
+    cumulative = (cumulative - cumulative[0]) / (cumulative[-1] - cumulative[0] + 1e-8) * (T - 1)
 
-    half = kernel_size // 2
-    t = torch.arange(-half, half + 1, dtype=x.dtype, device=x.device)
-    kernel = torch.exp(-0.5 * (t / sigma) ** 2)
-    kernel = kernel / kernel.sum()
-    kernel = kernel.view(1, 1, -1).expand(C, 1, -1)
+    idx_floor = cumulative.long().clamp(0, T - 2)
+    idx_ceil = (idx_floor + 1).clamp(0, T - 1)
+    frac = (cumulative - idx_floor.float()).unsqueeze(0).unsqueeze(-1)
 
-    # (B, T, C) → (B, C, T) → depthwise conv → (B, C, T) → (B, T, C)
-    x_t = x.permute(0, 2, 1)
-    x_t = x_t.reshape(B * C, 1, T)
-
-    pad = kernel_size // 2
-    x_smooth = F.conv1d(x_t, kernel[:1], padding=pad)
-    x_smooth = x_smooth.reshape(B, C, T)
-
-    return x_smooth.permute(0, 2, 1)
+    return x[:, idx_floor, :] * (1 - frac) + x[:, idx_ceil, :] * frac
 
 
 def augment_pipeline(x):
-    # Step 1: Random Crop + Resample  (= Random Crop & Resize)
-    x = _random_crop_resample(x, crop_ratio_range=(0.5, 1.0))
-    # Step 2: Random Scaling + Jitter  (= Color Distortion)
+    # Step 1: Jittering + Scaling (노이즈 추가 + 채널별 스케일링)
     x = _random_scaling_jitter(x, scale_range=(0.8, 1.2), jitter_std=0.05)
-    # Step 3: Temporal Gaussian Smoothing  (= Gaussian Blur)
-    x = _random_temporal_smoothing(x, max_kernel_sigma=2.0)
+    # Step 2: Permutation (시간 세그먼트 셔플)
+    x = _random_permutation(x, max_segments=5)
+    # Step 3: Time Warping (부드러운 시간 왜곡)
+    x = _random_time_warp(x, sigma=0.2)
     return x
 
 
