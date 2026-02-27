@@ -1,0 +1,2 @@
+CUDA_VISIBLE_DEVICES=6 python train_simclr.py --dataset pamap2 --model_id distilbert/distilbert-base-uncased
+CUDA_VISIBLE_DEVICES=6 python train_simclr.py --dataset hhar --model_id distilbert/distilbert-base-uncased
