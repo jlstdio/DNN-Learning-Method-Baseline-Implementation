@@ -1,0 +1,2 @@
+dataset,model_type,model_id,num_train_samples,epochs,accuracy,precision,recall,f1
+pamap2,linear_probe_random_init,distilbert/distilbert-base-uncased,100,50,0.7325,0.7597,0.6912,0.7009
