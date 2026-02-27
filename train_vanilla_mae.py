@@ -1,11 +1,3 @@
-"""
-Vanilla MAE 방식으로 HuggingFace 모델을 PAMAP2 및 HHAR 데이터셋에 학습.
-시계열을 temporal patch로 나누고 50% 랜덤 마스킹 후 복원.
-
-지원 모델:
-
-  - distilbert/distilbert-base-uncased
-"""
 import os
 import argparse
 import numpy as np
@@ -35,11 +27,9 @@ def main():
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Device: {device}")
 
     os.makedirs(args.save_dir, exist_ok=True)
 
-    # ── 데이터 로드 ──
     if args.dataset == 'pamap2':
         X_train, y_train, X_test, y_test = load_pamap2(
             'dataset/PAMAP2', window_size=args.window_size)
@@ -48,35 +38,23 @@ def main():
             'dataset/HHAR', window_size=args.window_size)
 
     input_dim = X_train.shape[2]
-    print(f"Input dim: {input_dim}, Train samples: {len(X_train)}, Test samples: {len(X_test)}")
-    print(f"Patch size: {args.patch_size}, Mask ratio: {args.mask_ratio}")
 
-    # 테스트 데이터 저장
     test_data_path = os.path.join(args.save_dir, f'{args.dataset}_test_data.npz')
     if not os.path.exists(test_data_path):
         np.savez(test_data_path, X_test=X_test, y_test=y_test)
-        print(f"Test data saved to {test_data_path}")
 
-    # ── 모델 생성 ──
     encoder, d_model = load_model(args.model_id)
     model = VanillaMAE(encoder, input_dim=input_dim, d_model=d_model,
                        patch_size=args.patch_size).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total params: {total_params:,}, Trainable: {trainable_params:,}")
-
-    # ── DataLoader ──
     train_tensor = torch.FloatTensor(X_train)
     train_loader = DataLoader(TensorDataset(train_tensor),
                               batch_size=args.batch_size, shuffle=True, drop_last=True)
 
-    # ── 파일명 생성 ──
     model_name = model_id_to_name(args.model_id)
     save_prefix = f'vanilla_mae_{model_name}_{args.dataset}'
 
-    # ── 학습 루프 ──
     print(f"\n{'='*60}")
     print(f"Vanilla MAE Training: {args.model_id}")
     print(f"Dataset: {args.dataset.upper()}")

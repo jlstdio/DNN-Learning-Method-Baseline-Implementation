@@ -25,7 +25,6 @@ def main():
     args = parser.parse_args()
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Device: {device}")
     
     os.makedirs(args.save_dir, exist_ok=True)
     
@@ -41,15 +40,10 @@ def main():
     test_data_path = os.path.join(args.save_dir, f'{args.dataset}_test_data.npz')
     if not os.path.exists(test_data_path):
         np.savez(test_data_path, X_test=X_test, y_test=y_test)
-        print(f"Test data saved to {test_data_path}")
     
     encoder, d_model = load_model(args.model_id)
     model = LIMUBert(encoder, input_dim=input_dim, d_model=d_model).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total params: {total_params:,}, Trainable: {trainable_params:,}")
     
     train_tensor = torch.FloatTensor(X_train)
     train_loader = DataLoader(TensorDataset(train_tensor),

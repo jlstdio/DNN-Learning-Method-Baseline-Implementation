@@ -4,7 +4,6 @@ import torch.nn.functional as F
 
 
 def _random_permutation(x, max_segments=5):
-    """시간 세그먼트를 랜덤으로 셔플 (Permutation)."""
     B, T, C = x.shape
     n_segments = torch.randint(2, max_segments + 1, (1,)).item()
     seg_len = T // n_segments
@@ -29,7 +28,6 @@ def _random_scaling_jitter(x, scale_range=(0.8, 1.2), jitter_std=0.05):
 
 
 def _random_time_warp(x, sigma=0.2):
-    """부드러운 시간 왜곡 (Time Warping)."""
     B, T, C = x.shape
     device = x.device
 
@@ -46,11 +44,8 @@ def _random_time_warp(x, sigma=0.2):
 
 
 def augment_pipeline(x):
-    # Step 1: Jittering + Scaling (노이즈 추가 + 채널별 스케일링)
     x = _random_scaling_jitter(x, scale_range=(0.8, 1.2), jitter_std=0.05)
-    # Step 2: Permutation (시간 세그먼트 셔플)
     x = _random_permutation(x, max_segments=5)
-    # Step 3: Time Warping (부드러운 시간 왜곡)
     x = _random_time_warp(x, sigma=0.2)
     return x
 

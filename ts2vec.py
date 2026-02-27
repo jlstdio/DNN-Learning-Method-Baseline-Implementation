@@ -1,11 +1,3 @@
-"""
-TS2Vec: 시계열을 위한 계층적 대조 학습.
-
-두 개의 View를 타임스탬프 마스킹 + 시간 크롭으로 생성하고,
-Temporal Contrast (동일 타임스탬프 정렬) 와
-Instance Contrast (동일 시퀀스 정렬) 를 결합하여
-타임스탬프 수준 + 시퀀스 수준의 범용 표현을 학습.
-"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,7 +10,6 @@ class TS2Vec(nn.Module):
         self.input_proj = nn.Linear(input_dim, d_model)
 
     def forward(self, x, mask=None):
-        """타임스탬프별 표현 반환. (B, T, D)"""
         h = self.input_proj(x)
         if mask is not None:
             h = h * mask.unsqueeze(-1)
@@ -29,11 +20,7 @@ class TS2Vec(nn.Module):
         ).last_hidden_state
 
 
-# ─────────────────────────── View 생성 ──────────────────────
-
 def generate_views(x, mask_ratio=0.5):
-    """타임스탬프 마스킹 + 시간 크롭으로 두 뷰를 생성하고
-    겹치는(overlap) 구간의 시작/끝 인덱스를 반환."""
     B, T, C = x.shape
     device = x.device
 
@@ -49,7 +36,6 @@ def generate_views(x, mask_ratio=0.5):
     overlap_start = max(start1, start2)
     overlap_end   = min(start1 + crop_len, start2 + crop_len)
 
-    # 겹침이 없으면 강제로 맞춤
     if overlap_end <= overlap_start:
         start2 = start1
         overlap_start = start1
@@ -58,11 +44,8 @@ def generate_views(x, mask_ratio=0.5):
     return mask1, mask2, overlap_start, overlap_end
 
 
-# ─────────────────────────── 계층적 대조 손실 ───────────────
-
 def hierarchical_contrastive_loss(z1, z2, overlap_start, overlap_end,
                                   temperature=0.5):
-    """Temporal Contrast + Instance Contrast 결합."""
     B, T, D = z1.shape
 
     if overlap_end <= overlap_start:
@@ -72,17 +55,13 @@ def hierarchical_contrastive_loss(z1, z2, overlap_start, overlap_end,
     z2_o = z2[:, overlap_start:overlap_end, :]
     T_o = z1_o.shape[1]
 
-    # ── Temporal Contrast ──
-    # 동일 타임스탬프 = positive, 다른 타임스탬프 = negative
     z1_t = F.normalize(z1_o, dim=-1)
     z2_t = F.normalize(z2_o, dim=-1)
-    sim = torch.bmm(z1_t, z2_t.transpose(1, 2)) / temperature  # (B, T', T')
+    sim = torch.bmm(z1_t, z2_t.transpose(1, 2)) / temperature
     labels_t = (torch.arange(T_o, device=z1.device)
                 .unsqueeze(0).expand(B, -1).reshape(-1))
     temporal_loss = F.cross_entropy(sim.reshape(B * T_o, T_o), labels_t)
 
-    # ── Instance Contrast ──
-    # 동일 시퀀스 = positive, 배치 내 다른 시퀀스 = negative
     z1_inst = F.normalize(z1_o.mean(dim=1), dim=-1)
     z2_inst = F.normalize(z2_o.mean(dim=1), dim=-1)
     sim_inst = torch.mm(z1_inst, z2_inst.T) / temperature
@@ -92,8 +71,6 @@ def hierarchical_contrastive_loss(z1, z2, overlap_start, overlap_end,
 
     return temporal_loss + instance_loss
 
-
-# ─────────────────────────── Train Step ─────────────────────
 
 def train_ts2vec(model, optimizer, x_raw):
     optimizer.zero_grad()
