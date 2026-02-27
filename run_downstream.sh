@@ -1,10 +1,12 @@
 #!/bin/bash
 # =============================================================================
-# Downstream Task: Pretrained + Random Init 전체 실행 스크립트
+# Downstream Task: Pretrained + Random Init + Linear Probe 전체 실행 스크립트
 #
-# 1) Pretrained: 6개 SSL 방법 × 2개 데이터셋 = 12 runs
-# 2) Random Init: 2개 데이터셋 = 2 runs  (동일 backbone, method 무관)
-# 총 14 runs
+# 1) Pretrained Fine-tune:       6개 SSL 방법 × 2개 데이터셋 = 12 runs
+# 2) Random Init Fine-tune:      2개 데이터셋 = 2 runs
+# 3) Pretrained Linear Probe:    6개 SSL 방법 × 2개 데이터셋 = 12 runs
+# 4) Random Init Linear Probe:   2개 데이터셋 = 2 runs
+# 총 28 runs
 # =============================================================================
 
 set -e
@@ -20,6 +22,10 @@ DATASETS=("hhar" "pamap2")
 echo "============================================================"
 echo " Downstream Task — All experiments"
 echo " GPU: ${GPU}  |  Model: ${MODEL_ID}"
+echo " Phase 1: Pretrained Fine-tune  (12 runs)"
+echo " Phase 2: Random Init Fine-tune (2 runs)"
+echo " Phase 3: Pretrained Linear Probe (12 runs)"
+echo " Phase 4: Random Init Linear Probe (2 runs)"
 echo "============================================================"
 
 # -----------------------------------------------------------------
@@ -71,6 +77,62 @@ for DATASET in "${DATASETS[@]}"; do
     echo "------------------------------------------------------------"
 
     CUDA_VISIBLE_DEVICES=${GPU} python downstream_task/train_random_init.py \
+        --dataset "${DATASET}" \
+        --model_id "${MODEL_ID}" \
+        --save_dir "${SAVE_DIR}"
+
+    echo ""
+done
+
+# -----------------------------------------------------------------
+# 3) Pretrained linear probe (6 methods × 2 datasets = 12 runs)
+# -----------------------------------------------------------------
+echo ""
+echo ">>> [Phase 3] Pretrained Linear Probe runs"
+echo ""
+
+for METHOD in "${METHODS[@]}"; do
+    for DATASET in "${DATASETS[@]}"; do
+        CKPT="${CKPT_DIR}/${METHOD}_distilbert_distilbert_base_uncased_${DATASET}_best.pt"
+        SAVE_DIR="${SAVE_BASE}/linear_probe_${METHOD}_${DATASET}"
+
+        if [ ! -f "${CKPT}" ]; then
+            echo "⚠  Checkpoint not found, skipping: ${CKPT}"
+            continue
+        fi
+
+        echo "------------------------------------------------------------"
+        echo "  Linear Probe (Pretrained) | Method: ${METHOD} | Dataset: ${DATASET}"
+        echo "  Checkpoint: ${CKPT}"
+        echo "  Save dir  : ${SAVE_DIR}"
+        echo "------------------------------------------------------------"
+
+        CUDA_VISIBLE_DEVICES=${GPU} python downstream_task/train_linear_probe.py \
+            --checkpoint "${CKPT}" \
+            --dataset "${DATASET}" \
+            --model_id "${MODEL_ID}" \
+            --save_dir "${SAVE_DIR}"
+
+        echo ""
+    done
+done
+
+# -----------------------------------------------------------------
+# 4) Random Init linear probe (2 datasets)
+# -----------------------------------------------------------------
+echo ""
+echo ">>> [Phase 4] Random Init Linear Probe runs"
+echo ""
+
+for DATASET in "${DATASETS[@]}"; do
+    SAVE_DIR="${SAVE_BASE}/linear_probe_random_init_${DATASET}"
+
+    echo "------------------------------------------------------------"
+    echo "  Linear Probe (Random Init) | Dataset: ${DATASET}"
+    echo "  Save dir    : ${SAVE_DIR}"
+    echo "------------------------------------------------------------"
+
+    CUDA_VISIBLE_DEVICES=${GPU} python downstream_task/train_linear_probe_random_init.py \
         --dataset "${DATASET}" \
         --model_id "${MODEL_ID}" \
         --save_dir "${SAVE_DIR}"
