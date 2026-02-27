@@ -31,11 +31,11 @@ from hf_backbones import load_model, model_id_to_name
 # ---------------------------------------------------------------------------
 DATASET_CONFIG = {
     'hhar':  {'num_classes': 6,
-              'train_npz': 'dataset/Downstream Task/HHAR/downstream_train_data.npz',
-              'test_npz':  'dataset/Downstream Task/HHAR/downstream_test_data.npz'},
+              'train_npz': 'dataset/Downstream_Task/HHAR/downstream_train_data.npz',
+              'test_npz':  'dataset/Downstream_Task/HHAR/downstream_test_data.npz'},
     'pamap2': {'num_classes': 12,
-              'train_npz': 'dataset/Downstream Task/PAMAP2/downstream_train_data.npz',
-              'test_npz':  'dataset/Downstream Task/PAMAP2/downstream_test_data.npz'},
+              'train_npz': 'dataset/Downstream_Task/PAMAP2/downstream_train_data.npz',
+              'test_npz':  'dataset/Downstream_Task/PAMAP2/downstream_test_data.npz'},
 }
 
 
@@ -69,7 +69,7 @@ class DownstreamClassifier(nn.Module):
 # Helpers
 # ---------------------------------------------------------------------------
 def load_data(base_dir, dataset_name, num_train=None, seed=42):
-    """Downstream Task 폴더에서 train/test npz를 각각 로드.
+    """Downstream_Task 폴더에서 train/test npz를 각각 로드.
 
     Args:
         base_dir: 프로젝트 루트 디렉토리 (dataset/ 폴더가 있는 곳)
