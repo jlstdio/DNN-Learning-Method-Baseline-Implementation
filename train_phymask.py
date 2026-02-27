@@ -15,7 +15,7 @@ def main():
     parser.add_argument('--dataset', type=str, required=True, choices=['pamap2', 'hhar'])
     parser.add_argument('--model_id', type=str, required=True,
                         help='HuggingFace model ID (e.g., distilbert/distilbert-base-uncased)')
-    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--mask_ratio', type=float, default=0.5,
