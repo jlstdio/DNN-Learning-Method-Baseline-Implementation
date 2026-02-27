@@ -35,8 +35,12 @@ from hf_backbones import load_model, model_id_to_name
 # Dataset config
 # ---------------------------------------------------------------------------
 DATASET_CONFIG = {
-    'hhar':  {'num_classes': 6,  'npz_file': 'hhar_test_data.npz'},
-    'pamap2': {'num_classes': 12, 'npz_file': 'pamap2_test_data.npz'},
+    'hhar':  {'num_classes': 6,
+              'train_npz': 'dataset/Downstream Task/HHAR/downstream_train_data.npz',
+              'test_npz':  'dataset/Downstream Task/HHAR/downstream_test_data.npz'},
+    'pamap2': {'num_classes': 12,
+              'train_npz': 'dataset/Downstream Task/PAMAP2/downstream_train_data.npz',
+              'test_npz':  'dataset/Downstream Task/PAMAP2/downstream_test_data.npz'},
 }
 
 
@@ -69,18 +73,28 @@ class DownstreamClassifier(nn.Module):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def load_data(data_dir, dataset_name, num_train=100, seed=42):
-    """npz에서 데이터 로드 → train(num_train개) / eval(나머지) 분리."""
-    npz_path = os.path.join(data_dir, DATASET_CONFIG[dataset_name]['npz_file'])
-    data = np.load(npz_path)
-    X, y = data['X_test'], data['y_test']
+def load_data(base_dir, dataset_name, num_train=None, seed=42):
+    """Downstream Task 폴더에서 train/test npz를 각각 로드.
 
-    rng = np.random.RandomState(seed)
-    indices = rng.permutation(len(X))
-    train_idx = indices[:num_train]
-    eval_idx = indices[num_train:]
+    Args:
+        base_dir: 프로젝트 루트 디렉토리 (dataset/ 폴더가 있는 곳)
+        dataset_name: 'hhar' 또는 'pamap2'
+        num_train: 학습에 사용할 샘플 수 (None이면 전체 train 사용)
+        seed: 랜덤 시드
+    """
+    cfg = DATASET_CONFIG[dataset_name]
+    train_data = np.load(os.path.join(base_dir, cfg['train_npz']))
+    test_data  = np.load(os.path.join(base_dir, cfg['test_npz']))
 
-    return X[train_idx], y[train_idx], X[eval_idx], y[eval_idx]
+    X_train, y_train = train_data['X_train'], train_data['y_train']
+    X_test,  y_test  = test_data['X_test'],   test_data['y_test']
+
+    if num_train is not None and num_train < len(X_train):
+        rng = np.random.RandomState(seed)
+        idx = rng.permutation(len(X_train))[:num_train]
+        X_train, y_train = X_train[idx], y_train[idx]
+
+    return X_train, y_train, X_test, y_test
 
 
 def evaluate(model, dataloader, device):
@@ -152,8 +166,8 @@ def main():
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--num_train', type=int, default=100,
                         help='학습에 사용할 샘플 수')
-    parser.add_argument('--data_dir', type=str, default='checkpoints',
-                        help='npz 파일이 위치한 디렉토리')
+    parser.add_argument('--data_dir', type=str, default='.',
+                        help='프로젝트 루트 디렉토리 (dataset/ 폴더가 있는 곳)')
     parser.add_argument('--save_dir', type=str,
                         default='downstream_task/results',
                         help='결과 CSV 저장 디렉토리')
