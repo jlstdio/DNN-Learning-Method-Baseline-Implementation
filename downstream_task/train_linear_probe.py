@@ -1,21 +1,3 @@
-"""
-Downstream Classification — Linear Probe with a Pre-trained Checkpoint.
-
-지정한 checkpoint(LIMUBert, SimCLR 등)에서 encoder + input_proj 가중치를 불러온 뒤
-encoder와 input_proj를 **freeze**하고 classification head만 학습·평가한다.
-npz 파일에서 100개 샘플로 학습, 나머지로 평가(Accuracy, Precision, Recall, F1).
-결과는 CSV로 저장된다.
-
-Usage:
-    python downstream_task/train_linear_probe.py \
-        --checkpoint checkpoints/limu_bert_distilbert_distilbert_base_uncased_hhar_best.pt \
-        --dataset hhar
-
-    python downstream_task/train_linear_probe.py \
-        --checkpoint checkpoints/simclr_distilbert_distilbert_base_uncased_pamap2_best.pt \
-        --dataset pamap2
-"""
-
 import os
 import sys
 import argparse
@@ -31,9 +13,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from hf_backbones import load_model, model_id_to_name
 
 
-# ---------------------------------------------------------------------------
-# Dataset config
-# ---------------------------------------------------------------------------
 DATASET_CONFIG = {
     'hhar':  {'num_classes': 6,
               'train_npz': 'dataset/Downstream_Task/HHAR/downstream_train_data.npz',
@@ -43,12 +22,7 @@ DATASET_CONFIG = {
               'test_npz':  'dataset/Downstream_Task/PAMAP2/downstream_test_data.npz'},
 }
 
-
-# ---------------------------------------------------------------------------
-# Model
-# ---------------------------------------------------------------------------
 class DownstreamClassifier(nn.Module):
-    """HF Encoder backbone + classification head."""
 
     def __init__(self, encoder, input_dim, d_model, num_classes):
         super().__init__()
@@ -60,21 +34,17 @@ class DownstreamClassifier(nn.Module):
         )
 
     def forward(self, x):
-        h = self.input_proj(x)                          # (B, T, d_model)
+        h = self.input_proj(x)
         mask = torch.ones(h.shape[0], h.shape[1],
                           device=h.device, dtype=torch.long)
         features = self.encoder(
             inputs_embeds=h, attention_mask=mask
-        ).last_hidden_state                              # (B, T, d_model)
-        global_repr = features.mean(dim=1)               # (B, d_model)
-        return self.classifier(global_repr)              # (B, num_classes)
+        ).last_hidden_state
+        global_repr = features.mean(dim=1)
+        return self.classifier(global_repr)
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 def load_data(base_dir, dataset_name, num_train=None, seed=42):
-    """Downstream_Task 폴더에서 train/test npz를 각각 로드."""
     cfg = DATASET_CONFIG[dataset_name]
     train_data = np.load(os.path.join(base_dir, cfg['train_npz']))
     test_data  = np.load(os.path.join(base_dir, cfg['test_npz']))
@@ -91,7 +61,6 @@ def load_data(base_dir, dataset_name, num_train=None, seed=42):
 
 
 def evaluate(model, dataloader, device):
-    """모델 평가 → (accuracy, precision, recall, f1)."""
     model.eval()
     all_preds, all_labels = [], []
     with torch.no_grad():
@@ -113,10 +82,6 @@ def evaluate(model, dataloader, device):
 
 
 def load_pretrained_weights(model, checkpoint_path, device):
-    """
-    Checkpoint에서 encoder / input_proj 가중치만 선택적으로 로드한다.
-    reconstruction_head(LIMUBert)나 projection_head(SimCLR) 등은 건너뛴다.
-    """
     checkpoint = torch.load(checkpoint_path, map_location=device,
                             weights_only=False)
     pretrained_state = checkpoint['model_state_dict']

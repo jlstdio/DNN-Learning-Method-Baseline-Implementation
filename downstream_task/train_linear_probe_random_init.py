@@ -1,18 +1,3 @@
-"""
-Downstream Classification — Linear Probe with Randomly Initialized Encoder.
-
-Randomly initialized DistilBERT encoder + input_proj를 **freeze**하고
-classification head만 학습·평가한다.
-Pretrained linear probe의 baseline 역할을 한다.
-npz 파일에서 100개 샘플로 학습, 나머지로 평가(Accuracy, Precision, Recall, F1).
-결과는 CSV로 저장된다.
-
-Usage:
-    python downstream_task/train_linear_probe_random_init.py --dataset hhar
-    python downstream_task/train_linear_probe_random_init.py --dataset pamap2
-    python downstream_task/train_linear_probe_random_init.py --dataset both
-"""
-
 import os
 import sys
 import argparse
@@ -27,10 +12,6 @@ from tqdm import tqdm
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from hf_backbones import load_model, model_id_to_name
 
-
-# ---------------------------------------------------------------------------
-# Dataset config
-# ---------------------------------------------------------------------------
 DATASET_CONFIG = {
     'hhar':  {'num_classes': 6,
               'train_npz': 'dataset/Downstream_Task/HHAR/downstream_train_data.npz',
@@ -41,11 +22,7 @@ DATASET_CONFIG = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Model
-# ---------------------------------------------------------------------------
 class DownstreamClassifier(nn.Module):
-    """HF Encoder backbone + classification head."""
 
     def __init__(self, encoder, input_dim, d_model, num_classes):
         super().__init__()
@@ -57,21 +34,17 @@ class DownstreamClassifier(nn.Module):
         )
 
     def forward(self, x):
-        h = self.input_proj(x)                          # (B, T, d_model)
+        h = self.input_proj(x)
         mask = torch.ones(h.shape[0], h.shape[1],
                           device=h.device, dtype=torch.long)
         features = self.encoder(
             inputs_embeds=h, attention_mask=mask
-        ).last_hidden_state                              # (B, T, d_model)
-        global_repr = features.mean(dim=1)               # (B, d_model)
-        return self.classifier(global_repr)              # (B, num_classes)
+        ).last_hidden_state
+        global_repr = features.mean(dim=1)
+        return self.classifier(global_repr)
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 def load_data(base_dir, dataset_name, num_train=None, seed=42):
-    """Downstream_Task 폴더에서 train/test npz를 각각 로드."""
     cfg = DATASET_CONFIG[dataset_name]
     train_data = np.load(os.path.join(base_dir, cfg['train_npz']))
     test_data  = np.load(os.path.join(base_dir, cfg['test_npz']))
@@ -88,7 +61,6 @@ def load_data(base_dir, dataset_name, num_train=None, seed=42):
 
 
 def evaluate(model, dataloader, device):
-    """모델 평가 → (accuracy, precision, recall, f1)."""
     model.eval()
     all_preds, all_labels = [], []
     with torch.no_grad():
@@ -101,6 +73,7 @@ def evaluate(model, dataloader, device):
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
 
+    # accuracy, precision, recall, f1
     return (
         accuracy_score(all_labels, all_preds),
         precision_score(all_labels, all_preds, average='macro', zero_division=0),
@@ -110,7 +83,7 @@ def evaluate(model, dataloader, device):
 
 
 def freeze_encoder(model):
-    """encoder와 input_proj를 freeze하고, classifier만 학습 가능하게 한다."""
+    # encoder와 input_proj를 freeze
     for param in model.encoder.parameters():
         param.requires_grad = False
     for param in model.input_proj.parameters():
@@ -118,13 +91,8 @@ def freeze_encoder(model):
 
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     frozen = sum(p.numel() for p in model.parameters() if not p.requires_grad)
-    print(f"  Frozen params : {frozen:,}")
-    print(f"  Trainable params: {trainable:,}  (classifier only)")
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(
         description='Downstream Classification — Linear Probe (Random Init)')
@@ -157,7 +125,6 @@ def main():
         print(f"Model: {args.model_id}")
         print(f"{'='*60}")
 
-        # ---- data ----
         X_train, y_train, X_eval, y_eval = load_data(
             args.data_dir, ds_name,
             num_train=args.num_train, seed=args.seed)
@@ -167,15 +134,12 @@ def main():
         print(f"Train: {X_train.shape}  Eval: {X_eval.shape}  "
               f"Classes: {num_classes}")
 
-        # ---- model (random init) ----
         encoder, d_model = load_model(args.model_id)
         model = DownstreamClassifier(
             encoder, input_dim, d_model, num_classes).to(device)
 
-        # ---- freeze encoder + input_proj ----
         freeze_encoder(model)
 
-        # ---- optimizer: classifier params only ----
         optimizer = torch.optim.AdamW(
             filter(lambda p: p.requires_grad, model.parameters()),
             lr=args.lr, weight_decay=1e-2)
@@ -190,7 +154,6 @@ def main():
                           torch.LongTensor(y_eval)),
             batch_size=args.batch_size, shuffle=False)
 
-        # ---- training (classifier only) ----
         for epoch in range(1, args.epochs + 1):
             model.train()
             epoch_losses = []
@@ -211,7 +174,6 @@ def main():
                       f"Acc {acc:.4f}  Prec {prec:.4f}  "
                       f"Rec {rec:.4f}  F1 {f1:.4f}")
 
-        # ---- final evaluation ----
         acc, prec, rec, f1 = evaluate(model, eval_loader, device)
         print(f"\n  ▶ Final Results ({ds_name.upper()}):")
         print(f"    Accuracy : {acc:.4f}")
@@ -231,7 +193,6 @@ def main():
             'f1': round(f1, 4),
         })
 
-    # ---- save CSV ----
     os.makedirs(args.save_dir, exist_ok=True)
     df = pd.DataFrame(results)
     csv_path = os.path.join(args.save_dir, 'linear_probe_random_init_results.csv')
