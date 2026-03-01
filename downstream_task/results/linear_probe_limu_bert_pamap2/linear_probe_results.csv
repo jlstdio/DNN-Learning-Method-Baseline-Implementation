@@ -1,2 +1,3 @@
 dataset,model_type,checkpoint,model_id,pretrained_on,num_train_samples,epochs,accuracy,precision,recall,f1
 pamap2,linear_probe,limu_bert_distilbert_distilbert_base_uncased_pamap2_best.pt,distilbert/distilbert-base-uncased,pamap2,100,50,0.7947,0.8249,0.7795,0.7948
+pamap2,linear_probe,limu_bert_distilbert_distilbert_base_uncased_pamap2_best.pt,distilbert/distilbert-base-uncased,pamap2,100,50,0.7918,0.828,0.7665,0.7849
