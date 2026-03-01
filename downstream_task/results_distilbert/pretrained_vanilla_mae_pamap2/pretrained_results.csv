@@ -1,0 +1,2 @@
+dataset,model_type,checkpoint,model_id,pretrained_on,num_train_samples,epochs,accuracy,precision,recall,f1
+pamap2,pretrained,vanilla_mae_distilbert_distilbert_base_uncased_pamap2_best.pt,distilbert/distilbert-base-uncased,pamap2,100,50,0.7834,0.794,0.7578,0.7689

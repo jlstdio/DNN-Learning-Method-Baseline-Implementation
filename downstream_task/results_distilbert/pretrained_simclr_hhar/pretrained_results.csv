@@ -1,0 +1,2 @@
+dataset,model_type,checkpoint,model_id,pretrained_on,num_train_samples,epochs,accuracy,precision,recall,f1
+hhar,pretrained,simclr_distilbert_distilbert_base_uncased_hhar_best.pt,distilbert/distilbert-base-uncased,hhar,100,50,0.8054,0.8142,0.789,0.7904
