@@ -1,3 +1,4 @@
 dataset,model_type,checkpoint,model_id,pretrained_on,num_train_samples,epochs,accuracy,precision,recall,f1
 pamap2,linear_probe,ts2vec_distilbert_distilbert_base_uncased_pamap2_best.pt,distilbert/distilbert-base-uncased,pamap2,100,50,0.7609,0.7756,0.7534,0.7603
 pamap2,linear_probe,ts2vec_distilbert_distilbert_base_uncased_pamap2_best.pt,distilbert/distilbert-base-uncased,pamap2,100,50,0.755,0.7816,0.7428,0.7555
+pamap2,linear_probe,ts2vec_microsoft_swinv2_tiny_patch4_window8_256_pamap2_best.pt,microsoft/swinv2-tiny-patch4-window8-256,pamap2,100,50,0.6717,0.6604,0.6538,0.6505

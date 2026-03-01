@@ -1,2 +1,2 @@
 dataset,model_type,model_id,num_train_samples,epochs,accuracy,precision,recall,f1
-hhar,linear_probe_random_init,distilbert/distilbert-base-uncased,100,50,0.6823,0.7208,0.6607,0.6575
+hhar,linear_probe_random_init,microsoft/swinv2-tiny-patch4-window8-256,100,50,0.5643,0.611,0.5345,0.5237

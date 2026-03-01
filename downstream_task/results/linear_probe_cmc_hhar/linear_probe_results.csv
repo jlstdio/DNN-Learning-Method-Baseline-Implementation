@@ -1,3 +1,4 @@
 dataset,model_type,checkpoint,model_id,pretrained_on,num_train_samples,epochs,accuracy,precision,recall,f1
 hhar,linear_probe,cmc_distilbert_distilbert_base_uncased_hhar_best.pt,distilbert/distilbert-base-uncased,hhar,100,50,0.6918,0.7241,0.6707,0.663
 hhar,linear_probe,cmc_distilbert_distilbert_base_uncased_hhar_best.pt,distilbert/distilbert-base-uncased,hhar,100,50,0.6846,0.7253,0.6626,0.6645
+hhar,linear_probe,cmc_microsoft_swinv2_tiny_patch4_window8_256_hhar_best.pt,microsoft/swinv2-tiny-patch4-window8-256,hhar,100,50,0.5317,0.6617,0.5052,0.4917

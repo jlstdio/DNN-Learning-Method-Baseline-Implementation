@@ -10,7 +10,8 @@
 set -e
 
 GPU=7
-MODEL_ID="distilbert/distilbert-base-uncased"
+# MODEL_ID="distilbert/distilbert-base-uncased"
+MODEL_ID="microsoft/swinv2-tiny-patch4-window8-256"
 CKPT_DIR="checkpoints"
 SAVE_BASE="downstream_task/results"
 
@@ -31,7 +32,7 @@ echo ""
 
 for METHOD in "${METHODS[@]}"; do
     for DATASET in "${DATASETS[@]}"; do
-        CKPT="${CKPT_DIR}/${METHOD}_distilbert_distilbert_base_uncased_${DATASET}_best.pt"
+        CKPT="${CKPT_DIR}/${METHOD}_microsoft_swinv2_tiny_patch4_window8_256_${DATASET}_best.pt"
         SAVE_DIR="${SAVE_BASE}/linear_probe_${METHOD}_${DATASET}"
 
         if [ ! -f "${CKPT}" ]; then

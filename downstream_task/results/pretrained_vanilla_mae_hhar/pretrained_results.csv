@@ -1,2 +1,3 @@
 dataset,model_type,checkpoint,model_id,pretrained_on,num_train_samples,epochs,accuracy,precision,recall,f1
 hhar,pretrained,vanilla_mae_distilbert_distilbert_base_uncased_hhar_best.pt,distilbert/distilbert-base-uncased,hhar,100,50,0.7934,0.7912,0.783,0.7823
+hhar,pretrained,vanilla_mae_microsoft_swinv2_tiny_patch4_window8_256_hhar_best.pt,microsoft/swinv2-tiny-patch4-window8-256,hhar,100,50,0.667,0.7351,0.6403,0.6468

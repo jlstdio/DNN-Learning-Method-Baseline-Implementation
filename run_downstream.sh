@@ -38,7 +38,7 @@ echo ""
 
 for METHOD in "${METHODS[@]}"; do
     for DATASET in "${DATASETS[@]}"; do
-        CKPT="${CKPT_DIR}/${METHOD}_${MODEL_ID}_${DATASET}_best.pt"
+        CKPT="${CKPT_DIR}/${METHOD}_microsoft_swinv2_tiny_patch4_window8_256_${DATASET}_best.pt"
         SAVE_DIR="${SAVE_BASE}/pretrained_${METHOD}_${DATASET}"
 
         if [ ! -f "${CKPT}" ]; then
@@ -85,61 +85,6 @@ for DATASET in "${DATASETS[@]}"; do
     echo ""
 done
 
-# -----------------------------------------------------------------
-# 3) Pretrained linear probe (6 methods × 2 datasets = 12 runs)
-# -----------------------------------------------------------------
-echo ""
-echo ">>> [Phase 3] Pretrained Linear Probe runs"
-echo ""
-
-for METHOD in "${METHODS[@]}"; do
-    for DATASET in "${DATASETS[@]}"; do
-        CKPT="${CKPT_DIR}/${METHOD}_${MODEL_ID}_${DATASET}_best.pt"
-        SAVE_DIR="${SAVE_BASE}/linear_probe_${METHOD}_${DATASET}"
-
-        if [ ! -f "${CKPT}" ]; then
-            echo "⚠  Checkpoint not found, skipping: ${CKPT}"
-            continue
-        fi
-
-        echo "------------------------------------------------------------"
-        echo "  Linear Probe (Pretrained) | Method: ${METHOD} | Dataset: ${DATASET}"
-        echo "  Checkpoint: ${CKPT}"
-        echo "  Save dir  : ${SAVE_DIR}"
-        echo "------------------------------------------------------------"
-
-        CUDA_VISIBLE_DEVICES=${GPU} python downstream_task/train_linear_probe.py \
-            --checkpoint "${CKPT}" \
-            --dataset "${DATASET}" \
-            --model_id "${MODEL_ID}" \
-            --save_dir "${SAVE_DIR}"
-
-        echo ""
-    done
-done
-
-# -----------------------------------------------------------------
-# 4) Random Init linear probe (2 datasets)
-# -----------------------------------------------------------------
-echo ""
-echo ">>> [Phase 4] Random Init Linear Probe runs"
-echo ""
-
-for DATASET in "${DATASETS[@]}"; do
-    SAVE_DIR="${SAVE_BASE}/linear_probe_random_init_${DATASET}"
-
-    echo "------------------------------------------------------------"
-    echo "  Linear Probe (Random Init) | Dataset: ${DATASET}"
-    echo "  Save dir    : ${SAVE_DIR}"
-    echo "------------------------------------------------------------"
-
-    CUDA_VISIBLE_DEVICES=${GPU} python downstream_task/train_linear_probe_random_init.py \
-        --dataset "${DATASET}" \
-        --model_id "${MODEL_ID}" \
-        --save_dir "${SAVE_DIR}"
-
-    echo ""
-done
 
 echo "============================================================"
 echo " ✔  All downstream experiments finished!"
